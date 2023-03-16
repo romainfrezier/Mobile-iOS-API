@@ -4,7 +4,7 @@ const router = express.Router();
 const volunteersCtrl = require('../controllers/volunteers');
 
 router.post('/', volunteersCtrl.createVolunteer);
-router.put('/:id', volunteersCtrl.modifyVolunteer);
+router.put('/:id', volunteersCtrl.updateVolunteer);
 router.delete('/:id', volunteersCtrl.deleteVolunteer);
 router.get('/:id', volunteersCtrl.getOneVolunteer);
 router.get('/', volunteersCtrl.getAllVolunteers);
