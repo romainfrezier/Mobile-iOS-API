@@ -7,7 +7,6 @@ exports.createVolunteer = (req, res, next) => {
         lastName: req.body.lastName,
         email: req.body.email,
         firebaseId: req.body.firebaseId,
-        isAdmin: false,
         festival: req.body.festival,
     });
     volunteer.save().then(

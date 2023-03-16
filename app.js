@@ -6,6 +6,7 @@ const admin = require('firebase-admin');
 const forge = require('node-forge');
 
 const volunteerRoutes = require('./routes/volunteers');
+const zoneRoutes = require('./routes/zones');
 
 // const privateKeyString = process.env.PRIVATE_KEY;
 // const privateKey = forge.pki.privateKeyFromPem(privateKeyString);
@@ -44,5 +45,6 @@ app.use(cors());
 // app.use(checkAuth)
 
 app.use('/volunteers', volunteerRoutes);
+app.use('/zones', zoneRoutes);
 
 module.exports = app;
