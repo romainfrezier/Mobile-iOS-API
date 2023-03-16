@@ -7,6 +7,9 @@ const forge = require('node-forge');
 
 const volunteerRoutes = require('./routes/volunteers');
 const zoneRoutes = require('./routes/zones');
+const festivalRoutes = require('./routes/festivals');
+const slotRoutes = require('./routes/timeslots');
+const dayRoutes = require('./routes/days');
 
 // const privateKeyString = process.env.PRIVATE_KEY;
 // const privateKey = forge.pki.privateKeyFromPem(privateKeyString);
@@ -46,5 +49,8 @@ app.use(cors());
 
 app.use('/volunteers', volunteerRoutes);
 app.use('/zones', zoneRoutes);
+app.use('/festivals', festivalRoutes);
+app.use('/slots', slotRoutes);
+app.use('/days', dayRoutes);
 
 module.exports = app;

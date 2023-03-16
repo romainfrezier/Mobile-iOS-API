@@ -1,5 +1,5 @@
 const Volunteers = require('../models/Volunteers');
-const Slots = require('../models/Slots');
+const Slots = require('../models/timeslots');
 
 exports.createVolunteer = (req, res, next) => {
     const volunteer = new Volunteers({

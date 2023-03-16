@@ -7,7 +7,7 @@ const daySchema = new Schema({
     opening: { type: Date, required: true },
     closing: { type: Date, required: true }
   },
-  slots: [{ type: String, required: true }],
+  slots: { type: [String], default: [] },
 }, { collection : 'days' });
 
 module.exports = mongoose.model('Days', daySchema);
