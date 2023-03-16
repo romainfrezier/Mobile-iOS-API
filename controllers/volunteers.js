@@ -30,10 +30,6 @@ exports.updateVolunteer = (req, res, next) => {
         lastName: req.body.lastName,
         email: req.body.email,
         festival: req.body.festival,
-        // Si il y a un slot, alors on ajoute l'id bu bénévole dans le tableau des bénévoles du slot
-        // Sinon, on ne fait rien
-        // TODO
-        slot: req.body.slot ? req.body.slot : null,
         availableSlots: req.body.availableSlots
     }).then(
         () => {
@@ -50,14 +46,14 @@ exports.updateVolunteer = (req, res, next) => {
     );
 }
 
-exports.deleteVolunteer = (req, res, next) => {
+exports.deleteVolunteer = async (req, res, next) => {
     Volunteers.deleteOne({_id: req.params.id}).then(
-        Slots.updateMany({volunteers: req.params.id}, {$pull: {volunteers: req.params.id}}).then(
-        () => {
-            res.status(200).json({
-                message: 'Volunteer deleted successfully!'
-            });
-        }).catch(
+        await Slots.updateMany({volunteers: req.params.id}, {$pull: {volunteers: req.params.id}}).then(
+            () => {
+                res.status(200).json({
+                    message: 'Volunteer deleted successfully!'
+                });
+            }).catch(
             (error) => {
                 res.status(400).json({
                     error: error
