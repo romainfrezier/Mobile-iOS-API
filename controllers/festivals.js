@@ -247,3 +247,26 @@ exports.getAllFestivals = (req, res, next) => {
         }
     );
 }
+
+exports.getOtherFestivals = async (req, res, next) => {
+    // Get festival that is not the one of the volunteer that have the id in the params
+    let festivals = await Festivals.find();
+    let volunteer = await Volunteers.findOne({firebaseId: req.params.firebaseId});
+    if (!volunteer) {
+        return res.status(404).json({
+            error: 'Volunteer not found'
+        });
+    }
+    if (festivals.size <= 1) {
+        return res.status(404).json({
+            error: 'No other festival found'
+        });
+    }
+    let festivalsOther = [];
+    for (let festival of festivals) {
+        if (festival._id !== volunteer.festival) {
+            festivalsOther.push(festival);
+        }
+    }
+    return res.status(200).json(festivalsOther);
+}

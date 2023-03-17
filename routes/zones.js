@@ -3,7 +3,7 @@ const router = express.Router();
 
 const zonesCtrl = require('../controllers/zones');
 
-router.post('/',zonesCtrl.createZone);
+router.post('/:festivalId',zonesCtrl.createZone);
 router.put('/:id',zonesCtrl.updateZone);
 router.delete('/:id',zonesCtrl.deleteZone);
 router.get('/:id', zonesCtrl.getOneZone);

@@ -46,14 +46,6 @@ exports.addSlots = async (opening, closing) => {
         } catch (error) {
             console.log(error);
         }
-        // await newSlot.save((err, timeslot) => {
-        //     if (err) {
-        //         console.log(err);
-        //     } else {
-        //         slotsIds.push(timeslot._id.toString());
-        //     }
-        // })
     }
-    console.log("slots created");
     return slotsIds;
 }
