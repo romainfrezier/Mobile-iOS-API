@@ -1,5 +1,7 @@
 const Days = require('../models/days');
 const timeslots = require('../commons/timeslots');
+const Festivals = require('../models/festivals');
+const Timeslots = require('../models/timeslots');
 
 exports.createDay = (req, res, next) => {
     const day = new Days({
@@ -8,8 +10,7 @@ exports.createDay = (req, res, next) => {
             opening: req.body.hours.opening,
             closing: req.body.hours.closing
         },
-        // TODO: Add slots (calculate them from hours) min 2h
-        slots: timeslots.calculateSlots(req.body.hours.opening, req.body.hours.closing)
+        slots: timeslots.addSlots(req.body.hours.opening, req.body.hours.closing)
     });
     day.save().then(
         () => {
@@ -26,16 +27,30 @@ exports.createDay = (req, res, next) => {
     );
 }
 
-exports.updateDay = (req, res, next) => {
-    const day = new Days({
+exports.updateDay = async (req, res, next) => {
+    let dayToUpdate = await Days.findOne({_id: req.params.id});
+
+    for (let slotId of dayToUpdate.slots) {
+        await Timeslots.deleteOne({_id: slotId}).then(
+            () => {
+                console.log("slot deleted");
+            }
+        ).catch(
+            (error) => {
+                console.log(error);
+            }
+        );
+    }
+
+    let slots = await timeslots.addSlots(req.body.hours.opening, req.body.hours.closing)
+    Days.updateOne({_id: req.params.id}, {
         name: req.body.name,
         hours: {
             opening: req.body.hours.opening,
             closing: req.body.hours.closing
-        }
-        // TODO: Update slots (re-calculate them from hours) min 2h
-    });
-    Days.updateOne({_id: req.params.id}, day).then(
+        },
+        slots: slots
+    }).then(
         () => {
             res.status(201).json({
                 message: 'Day updated successfully!'
