@@ -1,4 +1,5 @@
 const Days = require('../models/days');
+const timeslots = require('../commons/timeslots');
 
 exports.createDay = (req, res, next) => {
     const day = new Days({
@@ -8,7 +9,7 @@ exports.createDay = (req, res, next) => {
             closing: req.body.hours.closing
         },
         // TODO: Add slots (calculate them from hours) min 2h
-        slots: req.body.slots
+        slots: timeslots.calculateSlots(req.body.hours.opening, req.body.hours.closing)
     });
     day.save().then(
         () => {
@@ -95,3 +96,4 @@ exports.getAllDays = (req, res, next) => {
         }
     );
 }
+
