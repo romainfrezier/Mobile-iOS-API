@@ -1,4 +1,5 @@
 const moment = require("moment/moment") ;
+const Timeslots = require('../models/timeslots.js');
 
 const calculateSlots = (opening, closing) => {
     const slots = [];
@@ -49,7 +50,11 @@ exports.addSlots = async (opening, closing) => {
     let slotsIds = [];
     const newSlots = calculateSlots(opening, closing);
     for (let slot of newSlots){
-        await slot.save((err, timeslot) => {
+        let newSlot = new Timeslots({
+            start: slot.start,
+            end: slot.end
+        })
+        await newSlot.save((err, timeslot) => {
             if (err) {
                 console.log(err);
             } else {
