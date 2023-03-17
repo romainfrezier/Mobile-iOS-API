@@ -73,6 +73,7 @@ exports.createFestival = async (req, res, next) => {
     );
 }
 
+// TODO : Check
 exports.updateFestival = async (req, res, next) => {
     let zonesCreated = [];
     if (req.body.zones) {
@@ -104,6 +105,7 @@ exports.updateFestival = async (req, res, next) => {
     );
 }
 
+// TODO : Check
 exports.deleteFestival = async (req, res, next) => {
     let festival = await Festivals.findOne({_id: req.params.id});
     if (!festival) {

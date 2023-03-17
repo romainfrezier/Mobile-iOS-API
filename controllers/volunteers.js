@@ -1,6 +1,7 @@
 const Volunteers = require('../models/volunteers');
 const Slots = require('../models/timeslots');
 
+// TODO : Check
 exports.createVolunteer = (req, res, next) => {
     const volunteer = new Volunteers({
         firstName: req.body.firstName,
@@ -24,6 +25,7 @@ exports.createVolunteer = (req, res, next) => {
     );
 }
 
+// TODO : Check
 exports.updateVolunteer = (req, res, next) => {
     Volunteers.findOneAndUpdate({_id: req.params.id}, {
         firstName: req.body.firstName,
@@ -46,6 +48,7 @@ exports.updateVolunteer = (req, res, next) => {
     );
 }
 
+// TODO : Check
 exports.deleteVolunteer = async (req, res, next) => {
     Volunteers.deleteOne({_id: req.params.id}).then(
         await Slots.updateMany({volunteers: req.params.id}, {$pull: {volunteers: req.params.id}}).then(
@@ -67,6 +70,36 @@ exports.deleteVolunteer = async (req, res, next) => {
             });
         }
     )
+}
+
+exports.getVolunteerByFirebaseId = (req, res, next) => {
+    Volunteers.findOne({
+        firebaseId: req.params.firebaseId
+    }).then(
+        (volunteer) => {
+            res.status(200).json(volunteer);
+        }
+    ).catch(
+        (error) => {
+            res.status(404).json({
+                error: error
+            });
+        }
+    );
+}
+
+exports.getVolunteersByFestival = (req, res, next) => {
+    Volunteers.find({festival: req.params.festivalId}).then(
+        (volunteers) => {
+            res.status(200).json(volunteers);
+        }
+    ).catch(
+        (error) => {
+            res.status(400).json({
+                error: error
+            });
+        }
+    );
 }
 
 exports.getOneVolunteer = (req, res, next) => {

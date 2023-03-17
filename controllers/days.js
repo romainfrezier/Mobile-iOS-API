@@ -1,6 +1,5 @@
 const Days = require('../models/days');
 const timeslots = require('../commons/timeslots');
-const Festivals = require('../models/festivals');
 const Timeslots = require('../models/timeslots');
 
 exports.createDay = (req, res, next) => {
@@ -65,6 +64,7 @@ exports.updateDay = async (req, res, next) => {
     );
 }
 
+// TODO : Check
 exports.deleteDay = (req, res, next) => {
     // TODO: Delete all things related to this day
     Days.deleteOne({_id: req.params.id}).then(
@@ -81,6 +81,8 @@ exports.deleteDay = (req, res, next) => {
         }
     );
 }
+
+// TODO : Maybe a method to get all slots of a day with the day
 
 exports.getOneDay = (req, res, next) => {
     Days.findOne({
