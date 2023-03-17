@@ -2,39 +2,13 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const admin = require('firebase-admin');
-const forge = require('node-forge');
 
 const volunteerRoutes = require('./routes/volunteers');
 const zoneRoutes = require('./routes/zones');
 const festivalRoutes = require('./routes/festivals');
 const slotRoutes = require('./routes/timeslots');
 const dayRoutes = require('./routes/days');
-
-// const privateKeyString = process.env.PRIVATE_KEY;
-// const privateKey = forge.pki.privateKeyFromPem(privateKeyString);
-// const privateKeyPem = forge.pki.privateKeyToPem(privateKey);
-//
-// admin.initializeApp({
-//     credential: admin.credential.cert({
-//         projectId: process.env.PROJECT_ID,
-//         clientEmail: process.env.CLIENT_EMAIL,
-//         privateKey: privateKeyPem,
-//     }),
-// });
-
-// const checkAuth=(req, res, next) => {
-//     if (req.headers.authtoken) {
-//         admin.auth().verifyIdToken(req.headers.authtoken)
-//             .then(() => {
-//                 next()
-//             }).catch(() => {
-//             res.status(403).send('Unauthorized')
-//         });
-//     } else {
-//         res.status(403).send('Unauthorized')
-//     }
-// }
+const security = require('./middlewares/security.mid');
 
 const app = express();
 
@@ -45,12 +19,12 @@ mongoose.connect(`mongodb+srv://${process.env.DB_URL}`, { useNewUrlParser: true,
 app.use(bodyParser.json());
 app.use(cors());
 
-// app.use(checkAuth)
+// app.use(security.checkAuth)
 
-app.use('/volunteers', volunteerRoutes);
-app.use('/zones', zoneRoutes);
-app.use('/festivals', festivalRoutes);
-app.use('/slots', slotRoutes);
-app.use('/days', dayRoutes);
+app.use('/api/volunteers', volunteerRoutes);
+app.use('/api/zones', zoneRoutes);
+app.use('/api/festivals', festivalRoutes);
+app.use('/api/slots', slotRoutes);
+app.use('/api/days', dayRoutes);
 
 module.exports = app;

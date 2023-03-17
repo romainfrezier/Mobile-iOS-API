@@ -1,6 +1,8 @@
 const Timeslots = require('../models/timeslots');
 const Volunteers = require('../models/volunteers');
 
+// Get one timeslot from its id
+// Route: GET /slots/:id
 exports.getOneSlot = (req, res, next) => {
     Timeslots.findOne({
         _id: req.params.id
@@ -18,6 +20,8 @@ exports.getOneSlot = (req, res, next) => {
 }
 
 // TODO : Check
+// Get one timeslot from its id with the volunteers
+// Route: GET /slots/full/:id
 exports.getFullSlot = async (req, res, next) => {
     let slot = await Timeslots.findOne({
         _id: req.params.id
@@ -27,6 +31,8 @@ exports.getFullSlot = async (req, res, next) => {
             error: 'Slot not found'
         });
     }
+
+    // Get the volunteers assigned to the slot
     let volunteers = await Volunteers.find({
         _id: {
             $in: slot.volunteers
@@ -37,6 +43,8 @@ exports.getFullSlot = async (req, res, next) => {
             error: 'Volunteers not found'
         });
     }
+
+    // Build the slot object and return it
     const slotComplete = {
         _id: req.params.id,
         start: slot.start,
@@ -46,6 +54,8 @@ exports.getFullSlot = async (req, res, next) => {
     return res.status(200).json(slotComplete);
 }
 
+// Get all timeslots
+// Route: GET /slots
 exports.getAllSlots = (req, res, next) => {
     Timeslots.find().then(
         (slots) => {

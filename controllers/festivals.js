@@ -4,7 +4,10 @@ const Days = require('../models/days');
 const Timeslots = require('../models/timeslots');
 const Volunteers = require('../models/volunteers');
 const timeslots = require('../commons/timeslots');
+const checkAdmin = require('../middlewares/security.mid');
 
+// Aux function to add zones if they are passed in the request body at the creation of a festival
+// Returns an array of the ids of the zones created
 async function addZones(zones) {
     let zonesIds = [];
     for(zone of zones){
@@ -23,6 +26,8 @@ async function addZones(zones) {
     return zonesIds;
 }
 
+// Aux function to add days that are passed in the request body at the creation of a festival
+// Returns an array of the ids of the days created
 async function addDays(days) {
     let daysIds = [];
     for(let day of days){
@@ -46,12 +51,37 @@ async function addDays(days) {
     return daysIds;
 }
 
+// Create a festival from all the data passed in the request body
+// Route: POST /festivals
+// Body: {
+//     "name": String,
+//     "zones": [
+//         {
+//             "name": String,
+//             "volunteersNumber": Number => minimum number of volunteers needed for this zone
+//         }
+//     ],
+//     "days": [
+//         {
+//             "name": String,
+//             "hours": {
+//                 "opening": Date,
+//                 "closing": Date
+//             }
+//         }
+//     ],
+// }
 exports.createFestival = async (req, res, next) => {
+    // Add zones if they are passed in the request body
     let zones = [];
     if (req.body.zones) {
         zones = await addZones(req.body.zones);
     }
+
+    // Add days
     let daysCreated = await addDays(req.body.days);
+
+    // Create festival
     const festival = new Festivals({
         name: req.body.name,
         zones: zones,
@@ -73,8 +103,29 @@ exports.createFestival = async (req, res, next) => {
     );
 }
 
-// TODO : Check
+// TODO : Check => Get the festival with its zones and days, check if their arrays are the same than the request body, if not, create the missing ones
+// Update a festival from its id. Only an admin can do this
+// Route: PUT /festivals/:id
+// Body: {
+//     "name": String,
+//     "zones": [
+//         {
+//             "name": String,
+//             "volunteersNumber": Number => minimum number of volunteers needed for this zone
+//         }
+//     ],
+//     "days": [
+//         {
+//             "name": String,
+//             "hours": {
+//                 "opening": Date,
+//                 "closing": Date
+//             }
+//         }
+//     ]
+// }
 exports.updateFestival = async (req, res, next) => {
+    // Add zones if they are passed in the request body
     let zonesCreated = [];
     if (req.body.zones) {
         zonesCreated = await addZones(req.body.zones);
@@ -106,6 +157,9 @@ exports.updateFestival = async (req, res, next) => {
 }
 
 // TODO : Check
+// Delete a festival from its id
+// Route: DELETE /festivals/:id
+// }
 exports.deleteFestival = async (req, res, next) => {
     let festival = await Festivals.findOne({_id: req.params.id});
     if (!festival) {
@@ -114,6 +168,7 @@ exports.deleteFestival = async (req, res, next) => {
         });
     } else {
 
+        // Delete all the zones of the festival
         for (let zoneId of festival.zones) {
             Zones.deleteOne({_id: zoneId}).then(
                 () => {
@@ -126,6 +181,7 @@ exports.deleteFestival = async (req, res, next) => {
             );
         }
 
+        // Delete all the days of the festival
         for (let dayId of festival.days) {
             let day = await Days.findOne({_id: dayId});
             if (!day) {
@@ -133,6 +189,8 @@ exports.deleteFestival = async (req, res, next) => {
                     error: 'Day not found'
                 });
             } else {
+
+                // Delete all the timeslots of the day
                 for (let slotId of day.slots) {
                     Timeslots.deleteOne({_id: slotId}).then(
                         () => {
@@ -144,6 +202,8 @@ exports.deleteFestival = async (req, res, next) => {
                         }
                     );
                 }
+
+                // Delete the day
                 Days.deleteOne({_id: dayId}).then(
                     () => {
                         console.log("day deleted");
@@ -156,6 +216,7 @@ exports.deleteFestival = async (req, res, next) => {
             }
         }
 
+        // Remove the festival from the concerned volunteers
         Volunteers.updateMany({festival: req.params.id}, {festival: null, availableSlots: []}).then(
             () => {
                 console.log("volunteers updated");
@@ -166,6 +227,7 @@ exports.deleteFestival = async (req, res, next) => {
             }
         );
 
+        // Delete the festival
         Festivals.deleteOne({_id: req.params.id}).then(
             () => {
                 res.status(200).json({
@@ -182,6 +244,8 @@ exports.deleteFestival = async (req, res, next) => {
 
 }
 
+// Get the festival with all the information related to it
+// Route: GET /festivals/full/:id
 exports.getFullFestival = async (req, res, next) => {
     let festival = await Festivals.findOne({_id: req.params.id});
     if (!festival) {
@@ -189,12 +253,16 @@ exports.getFullFestival = async (req, res, next) => {
             error: 'Festival not found'
         });
     }
+
+    // Get the zones of the festival
     let zones = await Zones.find({_id: {$in: festival.zones}});
     if (!zones) {
         return res.status(404).json({
             error: 'Zones not found'
         });
     }
+
+    // Get the days of the festival
     let days = await Days.find({_id: {$in: festival.days}});
     if (!days) {
         return res.status(404).json({
@@ -202,6 +270,7 @@ exports.getFullFestival = async (req, res, next) => {
         });
     }
 
+    // Get the timeslots of the festival
     for (let day of days) {
         day.slots = await Timeslots.find({_id: {$in: day.slots}});
         for (let slot of day.slots) {
@@ -209,6 +278,7 @@ exports.getFullFestival = async (req, res, next) => {
         }
     }
 
+    // Build the festival object and return it
     const festivalComplete = {
         _id: req.params.id,
         name: req.body.name,
@@ -218,6 +288,8 @@ exports.getFullFestival = async (req, res, next) => {
     return res.status(200).json(festivalComplete);
 }
 
+// Get one festival with the minimum of information
+// Route: GET /festivals/:id
 exports.getOneFestival = (req, res, next) => {
     Festivals.findOne({
         _id: req.params.id
@@ -234,6 +306,8 @@ exports.getOneFestival = (req, res, next) => {
     );
 }
 
+// Get all the festivals
+// Route: GET /festivals
 exports.getAllFestivals = (req, res, next) => {
     Festivals.find().then(
         (festivals) => {
@@ -248,8 +322,9 @@ exports.getAllFestivals = (req, res, next) => {
     );
 }
 
+// Get all the festivals that are not the one of the volunteer
+// Route: GET /festivals/other/:firebaseId
 exports.getOtherFestivals = async (req, res, next) => {
-    // Get festival that is not the one of the volunteer that have the id in the params
     let festivals = await Festivals.find();
     let volunteer = await Volunteers.findOne({firebaseId: req.params.firebaseId});
     if (!volunteer) {

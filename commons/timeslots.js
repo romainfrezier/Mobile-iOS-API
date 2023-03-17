@@ -1,6 +1,8 @@
 const moment = require("moment/moment") ;
 const Timeslots = require('../models/timeslots.js');
 
+// Calculate slots automatically from opening and closing times, with a minimum duration of 2 hours
+// Returns an array of slots
 const calculateSlots = (opening, closing) => {
     const slots = [];
     let slotStart = moment(opening);
@@ -32,6 +34,8 @@ const calculateSlots = (opening, closing) => {
     return slots;
 }
 
+// Add slots to the database
+// Returns an array of the ids of the slots created
 exports.addSlots = async (opening, closing) => {
     let slotsIds = [];
     const newSlots = calculateSlots(opening, closing);
