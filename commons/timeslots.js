@@ -1,6 +1,6 @@
 const moment = require("moment/moment") ;
 
-exports.calculateSlots = (opening, closing) => {
+const calculateSlots = (opening, closing) => {
     const slots = [];
     let openingDate = new Date(opening);
     let closingDate = new Date(closing)
@@ -43,4 +43,19 @@ exports.calculateSlots = (opening, closing) => {
     console.log(slots)
   
     return slots;
-  }
+}
+
+exports.addSlots = async (opening, closing) => {
+    let slotsIds = [];
+    const newSlots = calculateSlots(opening, closing);
+    for (let slot of newSlots){
+        await slot.save((err, timeslot) => {
+            if (err) {
+                console.log(err);
+            } else {
+                slotsIds.push(timeslot._id);
+            }
+        })
+    }
+    return slotsIds;
+}

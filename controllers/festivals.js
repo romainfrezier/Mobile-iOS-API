@@ -1,11 +1,59 @@
 const Festivals = require('../models/festivals');
+const Zones = require('../models/zones');
+const Days = require('../models/days');
+const timeslots = require('../commons/timeslots');
 
-exports.createFestival = (req, res, next) => {
-    // TODO: create all things related to this festival
+async function addZones(zones) {
+    let zonesIds = [];
+    for(zone of zones){
+        let newZone = new Zones({
+            name: zone.name,
+            volunteersNumber: zone.volunteersNumber
+        });
+        await newZone.save((err, zone) => {
+            if (err) {
+                console.log(err);
+            } else {
+                zonesIds.push(zone._id);
+            }
+        })
+    }
+    return zonesIds;
+}
+
+async function addDays(days) {
+    let daysIds = [];
+    for(let day of days){
+        let slotsOfTheDay = timeslots.addSlots(day.hours.opening, day.hours.closing);
+        let newDay = new Days({
+            name: day.name,
+            hours: {
+                opening: day.hours.opening,
+                closing: day.hours.closing
+            },
+            slots: slotsOfTheDay
+        });
+        await newDay.save((err, day) => {
+            if (err) {
+                console.log(err);
+            } else {
+                daysIds.push(day._id);
+            }
+        })
+    }
+    return daysIds;
+}
+
+exports.createFestival = async (req, res, next) => {
+    let zones = [];
+    if (req.body.zones) {
+        zones = await addZones(req.body.zones);
+    }
+    let days = await addDays(req.body.days);
     const festival = new Festivals({
         name: req.body.name,
-        zones: req.body.zones,
-        days: req.body.days,
+        zones: zones,
+        days: days,
     });
     festival.save().then(
         () => {
