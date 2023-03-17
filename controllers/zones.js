@@ -1,4 +1,4 @@
-const Zones = require('../models/Zones');
+const Zones = require('../models/zones');
 
 exports.createZone = (req, res, next) => {
     const zone = new Zones({
