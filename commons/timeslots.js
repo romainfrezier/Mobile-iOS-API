@@ -3,14 +3,8 @@ const Timeslots = require('../models/timeslots.js');
 
 const calculateSlots = (opening, closing) => {
     const slots = [];
-    let openingDate = new Date(opening);
-    let closingDate = new Date(closing)
-    console.log(opening);
-    console.log(openingDate);
     let slotStart = moment(opening);
     let slotEnd = moment(opening).add(2, 'hours');
-    console.log(slotStart);
-  
     while (slotEnd <= moment(closing)) {
       slots.push({
         start: new Date(slotStart.toISOString()),
@@ -18,16 +12,11 @@ const calculateSlots = (opening, closing) => {
       });
       slotStart = slotStart.add(2, 'hours');
       slotEnd = slotEnd.add(2, 'hours');
-      console.log("here")
-      console.log(slots)
     }
-  
     const remainingTime = moment(closing).diff(slotStart, 'minutes');
     if (remainingTime > 0) {
       const lastSlot = slots[slots.length - 1];
       const lastSlotDuration = moment(lastSlot.end).diff(lastSlot.start, 'minutes');
-      console.log(lastSlotDuration);
-      console.log(remainingTime);
   
       if (remainingTime >= 120) {
         slots.push({
@@ -35,14 +24,11 @@ const calculateSlots = (opening, closing) => {
           end: new Date(moment(closing).toISOString()),
         });
       } else if (lastSlotDuration >= 120) {
-        lastSlot.end = new Date(moment(closing).toISOString());
+          lastSlot.end = new Date(moment(closing).toISOString());
       } else {
-        const updatedSlotEnd = new Date(moment(lastSlot.end).add(remainingTime, 'minutes').toISOString());
-        lastSlot.end = updatedSlotEnd;
+          lastSlot.end = new Date(moment(lastSlot.end).add(remainingTime, 'minutes').toISOString());
       }
     }
-    console.log(slots)
-  
     return slots;
 }
 
@@ -54,13 +40,20 @@ exports.addSlots = async (opening, closing) => {
             start: slot.start,
             end: slot.end
         })
-        await newSlot.save((err, timeslot) => {
-            if (err) {
-                console.log(err);
-            } else {
-                slotsIds.push(timeslot._id);
-            }
-        })
+        try {
+            let result = await newSlot.save();
+            slotsIds.push(result._id);
+        } catch (error) {
+            console.log(error);
+        }
+        // await newSlot.save((err, timeslot) => {
+        //     if (err) {
+        //         console.log(err);
+        //     } else {
+        //         slotsIds.push(timeslot._id.toString());
+        //     }
+        // })
     }
+    console.log("slots created");
     return slotsIds;
 }

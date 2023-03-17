@@ -5,7 +5,7 @@ const volunteerSchema = new mongoose.Schema({
   lastName: {type: String, required: true},
   email: { type: String, required: true },
   firebaseId: { type: String, required: true },
-  festival: { type: String, required: true },
+  festival: { type: String },
   isAdmin: { type: Boolean, default: false },
   availableSlots: { type: [{
     slot: { type: String, default: null },

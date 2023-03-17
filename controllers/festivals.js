@@ -1,6 +1,8 @@
 const Festivals = require('../models/festivals');
 const Zones = require('../models/zones');
 const Days = require('../models/days');
+const Timeslots = require('../models/timeslots');
+const Volunteers = require('../models/volunteers');
 const timeslots = require('../commons/timeslots');
 
 async function addZones(zones) {
@@ -24,23 +26,23 @@ async function addZones(zones) {
 async function addDays(days) {
     let daysIds = [];
     for(let day of days){
-        let slotsOfTheDay = timeslots.addSlots(day.hours.opening, day.hours.closing);
+        let slots = await timeslots.addSlots(day.hours.opening, day.hours.closing);
         let newDay = new Days({
             name: day.name,
             hours: {
                 opening: day.hours.opening,
                 closing: day.hours.closing
             },
-            slots: slotsOfTheDay
+            slots: slots
         });
-        await newDay.save((err, day) => {
-            if (err) {
-                console.log(err);
-            } else {
-                daysIds.push(day._id);
-            }
-        })
+        try {
+            let result = await newDay.save();
+            daysIds.push(result._id);
+        } catch (error) {
+            console.log(error);
+        }
     }
+    console.log("days created");
     return daysIds;
 }
 
@@ -49,14 +51,15 @@ exports.createFestival = async (req, res, next) => {
     if (req.body.zones) {
         zones = await addZones(req.body.zones);
     }
-    let days = await addDays(req.body.days);
+    let daysCreated = await addDays(req.body.days);
     const festival = new Festivals({
         name: req.body.name,
         zones: zones,
-        days: days,
+        days: daysCreated,
     });
     festival.save().then(
         () => {
+            console.log("festival created");
             res.status(201).json({
                 message: 'Festival saved successfully!'
             });
@@ -70,12 +73,22 @@ exports.createFestival = async (req, res, next) => {
     );
 }
 
-exports.updateFestival = (req, res, next) => {
-    // TODO: update all things related to this festival
+exports.updateFestival = async (req, res, next) => {
+    let zonesCreated = [];
+    if (req.body.zones) {
+        zonesCreated = await addZones(req.body.zones);
+    }
+    let daysCreated = await addDays(req.body.days);
+    let festival = await Festivals.findOne({_id: req.params.id});
+
+    festival.name = req.body.name;
+    festival.zones.push(zonesCreated);
+    festival.days.push(daysCreated);
+
     Festivals.findOneAndUpdate({_id: req.params.id}, {
-        name: req.body.name,
-        zones: req.body.zones,
-        days: req.body.days,
+        name: festival.name,
+        zones: festival.zones,
+        days: festival.days,
     }).then(
         () => {
             res.status(201).json({
@@ -91,36 +104,116 @@ exports.updateFestival = (req, res, next) => {
     );
 }
 
-exports.deleteFestival = (req, res, next) => {
-    // TODO: delete all things related to this festival
-    Festivals.deleteOne({_id: req.params.id}).then(
-    () => {
-        res.status(200).json({
-            message: 'Festival deleted successfully!'
+exports.deleteFestival = async (req, res, next) => {
+    let festival = await Festivals.findOne({_id: req.params.id});
+    if (!festival) {
+        return res.status(404).json({
+            error: 'Festival not found'
         });
-    }).catch(
-        (error) => {
-            res.status(400).json({
-                error: error
-            });
+    } else {
+
+        for (let zoneId of festival.zones) {
+            Zones.deleteOne({_id: zoneId}).then(
+                () => {
+                    console.log("zone deleted");
+                }
+            ).catch(
+                (error) => {
+                    console.log(error);
+                }
+            );
         }
-    );
+
+        for (let dayId of festival.days) {
+            let day = await Days.findOne({_id: dayId});
+            if (!day) {
+                return res.status(404).json({
+                    error: 'Day not found'
+                });
+            } else {
+                for (let slotId of day.slots) {
+                    Timeslots.deleteOne({_id: slotId}).then(
+                        () => {
+                            console.log("slot deleted");
+                        }
+                    ).catch(
+                        (error) => {
+                            console.log(error);
+                        }
+                    );
+                }
+                Days.deleteOne({_id: dayId}).then(
+                    () => {
+                        console.log("day deleted");
+                    }
+                ).catch(
+                    (error) => {
+                        console.log(error);
+                    }
+                );
+            }
+        }
+
+        Volunteers.updateMany({festival: req.params.id}, {festival: null, availableSlots: []}).then(
+            () => {
+                console.log("volunteers updated");
+            }
+        ).catch(
+            (error) => {
+                console.log(error);
+            }
+        );
+
+        Festivals.deleteOne({_id: req.params.id}).then(
+            () => {
+                res.status(200).json({
+                    message: 'Festival deleted successfully!'
+                });
+            }).catch(
+            (error) => {
+                res.status(400).json({
+                    error: error
+                });
+            }
+        );
+    }
+
 }
 
-exports.getOneFestival = (req, res, next) => {
-    Festivals.findOne({
-        _id: req.params.id
-    }).then(
-        (festival) => {
-            res.status(200).json(festival);
-        }
-    ).catch(
-        (error) => {
-            res.status(404).json({
-                error: error
-            });
-        }
-    );
+exports.getOneFestival = async (req, res, next) => {
+    let festival = await Festivals.findOne({_id: req.params.id});
+    if (!festival) {
+        return res.status(404).json({
+            error: 'Festival not found'
+        });
+    }
+    let zones = await Zones.find({_id: {$in: festival.zones}});
+    if (!zones) {
+        return res.status(404).json({
+            error: 'Zones not found'
+        });
+    }
+    let days = await Days.find({_id: {$in: festival.days}});
+    if (!days) {
+        return res.status(404).json({
+            error: 'Days not found'
+        });
+    }
+    let slots = await Timeslots.find({_id: {$in: days.slots}});
+    if (!slots) {
+        return res.status(404).json({
+            error: 'Slots not found'
+        });
+    }
+
+    const festivalComplete = {
+        _id: festival._id,
+        name: festival.name,
+        zones: zones,
+        days: days,
+        slots: slots
+    }
+    return res.status(200).json(festivalComplete);
 }
 
 exports.getAllFestivals = (req, res, next) => {
