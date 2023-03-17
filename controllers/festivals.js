@@ -180,7 +180,7 @@ exports.deleteFestival = async (req, res, next) => {
 
 }
 
-exports.getOneFestival = async (req, res, next) => {
+exports.getFullFestival = async (req, res, next) => {
     let festival = await Festivals.findOne({_id: req.params.id});
     if (!festival) {
         return res.status(404).json({
@@ -199,21 +199,37 @@ exports.getOneFestival = async (req, res, next) => {
             error: 'Days not found'
         });
     }
-    let slots = await Timeslots.find({_id: {$in: days.slots}});
-    if (!slots) {
-        return res.status(404).json({
-            error: 'Slots not found'
-        });
+
+    for (let day of days) {
+        day.slots = await Timeslots.find({_id: {$in: day.slots}});
+        for (let slot of day.slots) {
+            slot.volunteers = await Volunteers.find({_id: {$in: slot.volunteers}});
+        }
     }
 
     const festivalComplete = {
-        _id: festival._id,
-        name: festival.name,
+        _id: req.params.id,
+        name: req.body.name,
         zones: zones,
         days: days,
-        slots: slots
     }
     return res.status(200).json(festivalComplete);
+}
+
+exports.getOneFestival = (req, res, next) => {
+    Festivals.findOne({
+        _id: req.params.id
+    }).then(
+        (festival) => {
+            res.status(200).json(festival);
+        }
+    ).catch(
+        (error) => {
+            res.status(404).json({
+                error: error
+            });
+        }
+    );
 }
 
 exports.getAllFestivals = (req, res, next) => {
