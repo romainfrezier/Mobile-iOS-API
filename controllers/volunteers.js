@@ -149,8 +149,6 @@ exports.assignVolunteer = async (req, res, next) => {
         }
     });
 
-    console.log(volunteer.availableSlots)
-
     // Update the volunteer and the timeslot with the aux function
     try {
         await updateVolunteerAvailableSlots(req.params.id, req.body.slot, volunteer.availableSlots, "assign");

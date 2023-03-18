@@ -103,7 +103,7 @@ exports.createFestival = async (req, res, next) => {
     );
 }
 
-// TODO : Check => Get the festival with its zones and days, check if their arrays are the same than the request body, if not, create the missing ones
+// TODO : Check
 // Update a festival from its id. Only an admin can do this
 // Route: PUT /festivals/:id
 // Body: {
@@ -125,17 +125,86 @@ exports.createFestival = async (req, res, next) => {
 //     ]
 // }
 exports.updateFestival = async (req, res, next) => {
-    // Add zones if they are passed in the request body
-    let zonesCreated = [];
-    if (req.body.zones) {
-        zonesCreated = await addZones(req.body.zones);
-    }
-    let daysCreated = await addDays(req.body.days);
-    let festival = await Festivals.findOne({_id: req.params.id});
 
-    festival.name = req.body.name;
-    festival.zones.push(zonesCreated);
-    festival.days.push(daysCreated);
+    let festival = await Festivals.findOne({_id: req.params.id});
+    if (!festival) {
+        return res.status(404).json({
+            error: 'Festival not found'
+        });
+    }
+
+    // Update zones if they are passed in the request body
+    if (req.body.zones) {
+
+        // Add new zones
+        for (let zone of req.body.zones) {
+            if (!zone._id) {
+                let newZone = new Zones({
+                    name: zone.name,
+                    volunteersNumber: zone.volunteersNumber
+                });
+                await newZone.save((err, createdZone) => {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        festival.zones.push(createdZone._id);
+                        zone._id = createdZone._id;
+                    }
+                })
+            }
+        }
+
+        // Remove zones that are not in the request body
+        for (let zone of festival.zones) {
+            if (!req.body.zones.includes(zone._id)) {
+                await Zones.findOneAndDelete({_id: zone._id});
+                festival.zones.splice(festival.zones.indexOf(zone._id), 1);
+            }
+        }
+
+    }
+
+    // Update days if they are passed in the request body
+    if (req.body.days) {
+
+        // Add new days
+        for (let day of req.body.days) {
+            if (!day._id) {
+                let slots = await timeslots.addSlots(day.hours.opening, day.hours.closing);
+                let newDay = new Days({
+                    name: day.name,
+                    hours: {
+                        opening: day.hours.opening,
+                        closing: day.hours.closing
+                    },
+                    slots: slots
+                });
+                try {
+                    let result = await newDay.save();
+                    festival.days.push(result._id);
+                    day._id = result._id;
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+        }
+
+        // Remove days that are not in the request body
+        for (let day of festival.days) {
+            if (!req.body.days.contains(day._id)) {
+                for (let slot of day.slot) {
+                    let volunteers = await Volunteers.find({availableSlots: {$elemMatch: {slot: slot._id}}});
+                    for (let volunteer of volunteers) {
+                        volunteer.availableSlots.splice(volunteer.availableSlots.indexOf(slot._id), 1);
+                        await volunteer.save();
+                    }
+                    await Timeslots.findOneAndDelete({_id: slot._id});
+                }
+                await Days.findOneAndDelete({_id: day._id});
+                festival.days.splice(festival.days.indexOf(day._id), 1);
+            }
+        }
+    }
 
     Festivals.findOneAndUpdate({_id: req.params.id}, {
         name: festival.name,
