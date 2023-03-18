@@ -88,8 +88,22 @@ exports.updateDay = async (req, res, next) => {
 // TODO : Check
 // Delete a day from its id in the database
 // Route : DELETE /api/days/:id
-exports.deleteDay = (req, res, next) => {
-    // TODO: Delete all things related to this day
+exports.deleteDay = async (req, res, next) => {
+    let dayToDelete = await Days.findOne({_id: req.params.id});
+
+    // Delete all slots of the day
+    for (let slotId of dayToDelete.slots) {
+        await Timeslots.deleteOne({_id: slotId}).then(
+            () => {
+                console.log("slot deleted");
+            }
+        ).catch(
+            (error) => {
+                console.log(error);
+            }
+        );
+    }
+
     Days.deleteOne({_id: req.params.id}).then(
         () => {
             res.status(200).json({
