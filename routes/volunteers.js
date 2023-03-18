@@ -11,14 +11,16 @@ router.get('/:id', volunteersCtrl.getOneVolunteer); // Get a volunteer
 router.get('/', volunteersCtrl.getAllVolunteers); // Get all volunteers
 
 // Firebase CRUD
-router.get('/firebase/:id', volunteersCtrl.getVolunteerByFirebaseId); // Get a volunteer by firebase id
-router.put('/firebase/:id', volunteersCtrl.updateVolunteerByFirebaseId); // Update a volunteer by firebase id
-router.delete('/firebase/:id', volunteersCtrl.deleteVolunteerByFirebaseId); // Delete a volunteer by firebase id
+router.get('/firebase/:firebaseId', volunteersCtrl.getVolunteerByFirebaseId); // Get a volunteer by firebase id
+router.put('/firebase/:firebaseId', volunteersCtrl.updateVolunteerByFirebaseId); // Update a volunteer by firebase id
+router.delete('/firebase/:firebaseId', volunteersCtrl.deleteVolunteerByFirebaseId); // Delete a volunteer by firebase id
 
 // Advanced Queries
 router.get('/festival/:festivalId', volunteersCtrl.getVolunteersByFestival); // Get all the volunteers of a festival
 router.get('/assignedSlots/:id', volunteersCtrl.getAssignedSlots); // Get all the assigned slots of a volunteer
+router.get('/assignedSlots/firebase/:firebaseId', volunteersCtrl.getAssignedSlotsByFirebaseId); // Get all the assigned slots of a volunteer from a firebase id
 router.put('/assign/:id', security.isAdmin, volunteersCtrl.assignVolunteer); // Assign a volunteer to a slot
 router.put('/free/:id', security.isAdmin, volunteersCtrl.freeVolunteer); // Free a volunteer from a slot
+router.put('/admin/:id', security.isAdmin, volunteersCtrl.makeAdmin); // Make a volunteer an admin
 
 module.exports = router;

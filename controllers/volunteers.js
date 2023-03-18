@@ -1,6 +1,5 @@
 const Volunteers = require('../models/volunteers');
 const Timeslots = require('../models/timeslots');
-const checkAdmin = require("../middlewares/security.mid");
 
 // Aux function to update the available slots of a volunteer
 // Throws an error if the volunteer can not be updated or found
@@ -12,12 +11,12 @@ async function updateVolunteerAvailableSlots(volunteerId, slotId, availableSlots
         throw new Error("Volunteer not found!");
     }
     if (action === "assign") {
-        let updatedVolunteer = await Timeslots.updateMany({_id: slotId}, {$push: {volunteers: volunteerId}});
+        let updatedVolunteer = await Timeslots.updateOne({_id: slotId}, {$push: {volunteers: volunteerId}});
         if (!updatedVolunteer) {
             throw new Error("Volunteer not assigned!");
         }
     } else if (action === "free") {
-        let updatedVolunteer = await Timeslots.updateMany({_id: slotId}, {$pull: {volunteers: volunteerId}});
+        let updatedVolunteer = await Timeslots.updateOne({_id: slotId}, {$pull: {volunteers: volunteerId}});
         if (!updatedVolunteer) {
             throw new Error("Volunteer not freed!");
         }
@@ -126,8 +125,8 @@ exports.updateVolunteerByFirebaseId = (req, res, next) => {
 // Assign a volunteer to a timeslot. Action possible only if the one who is doing the request is the festival admin
 // Route: PUT /volunteers/assign/:id
 // Body: {
-//     slotId: String, => timeslotId to assign the volunteer to
-//     zoneId: String, => zoneId to assign the volunteer to
+//     slot: String, => timeslotId to assign the volunteer to
+//     zone: String, => zoneId to assign the volunteer to
 // }
 exports.assignVolunteer = async (req, res, next) => {
     let volunteer = await Volunteers.findOne({_id: req.params.id});
@@ -137,18 +136,26 @@ exports.assignVolunteer = async (req, res, next) => {
         });
     }
 
+    if (!volunteer.availableSlots) {
+        return res.status(400).json({
+            error: "Volunteer has no available slots"
+        });
+    }
+
     // Put the zone to the corresponding slot
     volunteer.availableSlots.forEach(slot => {
-        if (slot.slot === req.body.slotId) {
-            slot.zone = req.body.zoneId;
+        if (slot.slot === req.body.slot) {
+            slot.zone = req.body.zone;
         }
     });
 
+    console.log(volunteer.availableSlots)
+
     // Update the volunteer and the timeslot with the aux function
     try {
-        updateVolunteerAvailableSlots(req.params.id, req.body.slotId, null, volunteer.availableSlots, "assign");
+        await updateVolunteerAvailableSlots(req.params.id, req.body.slot, volunteer.availableSlots, "assign");
         res.status(201).json({
-            message: 'Volunteer freed successfully!'
+            message: 'Volunteer assigned successfully!'
         });
     } catch (e) {
         res.status(400).json({
@@ -161,7 +168,7 @@ exports.assignVolunteer = async (req, res, next) => {
 // Free a volunteer from a timeslot. Action possible only if the one who is doing the request is the festival admin
 // Route: PUT /volunteers/free/:id
 // Body: {
-//     slotId: String, => timeslotId to free the volunteer from
+//     slot: String, => timeslotId to free the volunteer from
 // }
 exports.freeVolunteer = async (req, res, next) => {
     let volunteer = await Volunteers.findOne({_id: req.params.id});
@@ -171,16 +178,22 @@ exports.freeVolunteer = async (req, res, next) => {
         });
     }
 
+    if (!volunteer.availableSlots) {
+        return res.status(400).json({
+            error: "Volunteer has no available slots"
+        });
+    }
+
     // Remove the zone to the corresponding slot
     volunteer.availableSlots.forEach(slot => {
-        if (slot.slot === req.body.slotId) {
+        if (slot.slot === req.body.slot) {
             slot.zone = null;
         }
     });
 
     // Update the volunteer and the timeslot with the aux function
     try {
-        updateVolunteerAvailableSlots(req.params.id, req.body.slotId, null, volunteer.availableSlots, "free");
+        await updateVolunteerAvailableSlots(req.params.id, req.body.slot, volunteer.availableSlots, "free");
         res.status(201).json({
             message: 'Volunteer freed successfully!'
         });
@@ -195,10 +208,10 @@ exports.freeVolunteer = async (req, res, next) => {
 // Delete a volunteer from its id
 // Route: DELETE /volunteers/:id
 exports.deleteVolunteer = async (req, res, next) => {
-    Volunteers.deleteOne({_id: req.params.firebaseId}).then(
+    Volunteers.deleteOne({_id: req.params.id}).then(
 
         // Remove the volunteer from the timeslots concerned
-        await Slots.updateMany({volunteers: req.params.id}, {$pull: {volunteers: req.params.id}}).then(
+        await Timeslots.updateMany({volunteers: req.params.id}, {$pull: {volunteers: req.params.id}}).then(
             () => {
                 res.status(200).json({
                     message: 'Volunteer deleted successfully!'
@@ -325,7 +338,7 @@ exports.getAssignedSlots = async (req, res, next) => {
 
     // For each timeslot of the volunteer, check if the volunteer is assigned to it
     for (let i = 0; i < volunteer.availableSlots.length; i++) {
-        let slot = await Slots.findOne({_id: volunteer.availableSlots[i]});
+        let slot = await Timeslots.findOne({_id: volunteer.availableSlots[i]});
         if (!slot) return res.status(404).json({message: "Slot not found"});
 
         // Check if the volunteer is assigned to the slot, if yes, add it to the array
@@ -334,4 +347,42 @@ exports.getAssignedSlots = async (req, res, next) => {
         }
     }
     res.status(200).json(assignedSlots);
+}
+
+// Get all the timeslots of a volunteer from its firebase id
+// Route: GET /volunteers/assignedSlots/firebase/:firebaseId
+exports.getAssignedSlotsByFirebaseId = async (req, res, next) => {
+    let volunteer = await Volunteers.findOne({firebaseId: req.params.firebaseId});
+    if (!volunteer) return res.status(404).json({message: "Volunteer not found"});
+    let assignedSlots = [];
+
+    // For each timeslot of the volunteer, check if the volunteer is assigned to it
+    for (let i = 0; i < volunteer.availableSlots.length; i++) {
+        let slot = await Timeslots.findOne({_id: volunteer.availableSlots[i]});
+        if (!slot) return res.status(404).json({message: "Slot not found"});
+
+        // Check if the volunteer is assigned to the slot, if yes, add it to the array
+        if (slot.volunteers.includes(volunteer._id)){
+            assignedSlots.push(slot);
+        }
+    }
+    res.status(200).json(assignedSlots);
+}
+
+// Make a volunteer an admin
+// Route: PUT /volunteers/admin/:id
+exports.makeAdmin = (req, res, next) => {
+    Volunteers.updateOne({_id: req.params.id}, {isAdmin: true}).then(
+        () => {
+            res.status(201).json({
+                message: 'Volunteer updated successfully!'
+            });
+        }
+    ).catch(
+        (error) => {
+            res.status(400).json({
+                error: error
+            });
+        }
+    );
 }
