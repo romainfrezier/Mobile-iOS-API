@@ -12,5 +12,7 @@ router.get('/', zonesCtrl.getAllZones); // Get all zones
 
 // Advanced Queries
 router.get('/festival/:festivalId', zonesCtrl.getAllZonesOfFestival); // Get all the zones of a festival
+router.get('/volunteers/:id', zonesCtrl.getVolunteersOfZone); // Get all the volunteers of a zone
+router.get('notFull', zonesCtrl.getNotFullZones); // Get all the zones that are not full
 
 module.exports = router;

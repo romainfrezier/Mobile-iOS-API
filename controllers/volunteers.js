@@ -384,3 +384,59 @@ exports.makeAdmin = (req, res, next) => {
         }
     );
 }
+
+// Make a volunteer change its festival
+// Route: PUT /volunteers/festival/:id
+// Body: {
+//     festival: String => the new festival id
+// }
+exports.changeFestival = async (req, res, next) => {
+    let volunteer = await Volunteers.findOne({_id: req.params.id});
+    if (!volunteer) return res.status(404).json({message: "Volunteer not found"});
+
+    for (let i = 0; i < volunteer.availableSlots.length; i++) {
+        await Timeslots.updateOne({_id: volunteer.availableSlots[i]}, {$pull: {volunteers: volunteer._id}});
+    }
+
+    Volunteers.updateOne({_id: req.params.id}, {availableSlots: [], festival: req.body.festival}).then(
+        () => {
+            res.status(201).json({
+                message: 'Volunteer updated successfully!'
+            });
+        }
+    ).catch(
+        (error) => {
+            res.status(400).json({
+                error: error
+            });
+        }
+    );
+}
+
+// Make a volunteer change its festival
+// Route: PUT /volunteers/festival/firebase/:firebaseId
+// Body: {
+//     festival: String => the new festival id
+// }
+exports.changeFestivalByFirebaseId = async (req, res, next) => {
+    let volunteer = await Volunteers.findOne({firebaseId: req.params.firebaseId});
+    if (!volunteer) return res.status(404).json({message: "Volunteer not found"});
+
+    for (let i = 0; i < volunteer.availableSlots.length; i++) {
+        await Timeslots.updateOne({_id: volunteer.availableSlots[i]}, {$pull: {volunteers: volunteer._id}});
+    }
+
+    Volunteers.updateOne({_id: req.params.id}, {availableSlots: [], festival: req.body.festival}).then(
+        () => {
+            res.status(201).json({
+                message: 'Volunteer updated successfully!'
+            });
+        }
+    ).catch(
+        (error) => {
+            res.status(400).json({
+                error: error
+            });
+        }
+    );
+}

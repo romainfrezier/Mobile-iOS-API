@@ -170,3 +170,24 @@ exports.getAllZonesOfFestival = (req, res, next) => {
         }
     );
 }
+
+// Get all the volunteers of a zone
+// Route: GET /zones/volunteers/:id
+exports.getVolunteersOfZone = async (req, res, next) => {
+    let volunteers = await Volunteers.find({availableSlots: {$elemMatch: {zone: req.params.id}}});
+    res.status(200).json(volunteers);
+}
+
+// Get all the zones that are not full
+// Route: GET /zones/notFull
+exports.getNotFullZones = async (req, res, next) => {
+    let zones = await Zones.find();
+    let zonesNotFull = [];
+    for (let i = 0; i < zones.length; i++) {
+        let volunteers = await Volunteers.find({availableSlots: {$elemMatch: {zone: zones[i]._id}}});
+        if (volunteers.length < zones[i].volunteersNumber) {
+            zonesNotFull.push(zones[i]);
+        }
+    }
+    res.status(200).json(zonesNotFull);
+}

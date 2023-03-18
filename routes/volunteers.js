@@ -22,5 +22,7 @@ router.get('/assignedSlots/firebase/:firebaseId', volunteersCtrl.getAssignedSlot
 router.put('/assign/:id', security.isAdmin, volunteersCtrl.assignVolunteer); // Assign a volunteer to a slot
 router.put('/free/:id', security.isAdmin, volunteersCtrl.freeVolunteer); // Free a volunteer from a slot
 router.put('/admin/:id', security.isAdmin, volunteersCtrl.makeAdmin); // Make a volunteer an admin
+router.put('/festival/:id', volunteersCtrl.changeFestival); // Change the festival of a volunteer
+router.put('/festival/firebase/:firebaseId', volunteersCtrl.changeFestivalByFirebaseId); // Change the festival of a volunteer from its firebase id
 
 module.exports = router;

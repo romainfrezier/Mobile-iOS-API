@@ -4,7 +4,6 @@ const Days = require('../models/days');
 const Timeslots = require('../models/timeslots');
 const Volunteers = require('../models/volunteers');
 const timeslots = require('../commons/timeslots');
-const checkAdmin = require('../middlewares/security.mid');
 
 // Aux function to add zones if they are passed in the request body at the creation of a festival
 // Returns an array of the ids of the zones created
@@ -183,6 +182,7 @@ exports.updateFestival = async (req, res, next) => {
                     let result = await newDay.save();
                     festival.days.push(result._id);
                     day._id = result._id;
+
                 } catch (error) {
                     console.log(error);
                 }
@@ -191,8 +191,8 @@ exports.updateFestival = async (req, res, next) => {
 
         // Remove days that are not in the request body
         for (let day of festival.days) {
-            if (!req.body.days.contains(day._id)) {
-                for (let slot of day.slot) {
+            if (!req.body.days.includes(day._id)) {
+                for (let slot of day.slots) {
                     let volunteers = await Volunteers.find({availableSlots: {$elemMatch: {slot: slot._id}}});
                     for (let volunteer of volunteers) {
                         volunteer.availableSlots.splice(volunteer.availableSlots.indexOf(slot._id), 1);
