@@ -1,6 +1,6 @@
 const admin = require('firebase-admin');
 const forge = require('node-forge');
-const Volunteers = require('../models/Volunteers');
+const Volunteers = require('../models/volunteers');
 
 exports.isAdmin = async (req, res, next) => {
     if (!req.headers.requester) {

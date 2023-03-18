@@ -4,32 +4,23 @@ const checkAdmin = require("../middlewares/security.mid");
 
 // Aux function to update the available slots of a volunteer
 // Throws an error if the volunteer can not be updated or found
-function updateVolunteerAvailableSlots(volunteerId, slotId, availableSlots, action) {
-    Volunteers.findOneAndUpdate({_id: volunteerId}, {
+async function updateVolunteerAvailableSlots(volunteerId, slotId, availableSlots, action) {
+    let volunteer = await Volunteers.findOneAndUpdate({_id: volunteerId}, {
         availableSlots: availableSlots
-    }).then(
-        () => {
-            console.log("Volunteer found!");
-        }
-    ).catch(
-        throw new Error("Volunteer not found!")
-    );
+    });
+    if (!volunteer) {
+        throw new Error("Volunteer not found!");
+    }
     if (action === "assign") {
-        Timeslots.updateMany({_id: slotId}, {$push: {volunteers: volunteerId}}).then(
-            () => {
-                console.log("Volunteer assigned successfully!");
-            }
-        ).catch(
-            throw new Error("Volunteer not assigned!")
-        );
+        let updatedVolunteer = await Timeslots.updateMany({_id: slotId}, {$push: {volunteers: volunteerId}});
+        if (!updatedVolunteer) {
+            throw new Error("Volunteer not assigned!");
+        }
     } else if (action === "free") {
-        Timeslots.updateMany({_id: slotId}, {$pull: {volunteers: volunteerId}}).then(
-            () => {
-                console.log("Volunteer freed successfully!");
-            }
-        ).catch(
-            throw new Error("Volunteer not freed!")
-        );
+        let updatedVolunteer = await Timeslots.updateMany({_id: slotId}, {$pull: {volunteers: volunteerId}});
+        if (!updatedVolunteer) {
+            throw new Error("Volunteer not freed!");
+        }
     }
 
 }
