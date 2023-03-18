@@ -13,6 +13,7 @@ exports.isAdmin = async (req, res, next) => {
     if (!volunteerToControl.isAdmin) {
         return res.status(403).json({error: "The person who makes the request is not an admin"});
     }
+    next();
 }
 //
 // const privateKeyString = process.env.PRIVATE_KEY;
