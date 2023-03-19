@@ -15,28 +15,28 @@ exports.isAdmin = async (req, res, next) => {
     }
     next();
 }
-//
-// const privateKeyString = process.env.PRIVATE_KEY;
-// const privateKey = forge.pki.privateKeyFromPem(privateKeyString);
-// const privateKeyPem = forge.pki.privateKeyToPem(privateKey);
-//
-// admin.initializeApp({
-//     credential: admin.credential.cert({
-//         projectId: process.env.PROJECT_ID,
-//         clientEmail: process.env.CLIENT_EMAIL,
-//         privateKey: privateKeyPem,
-//     }),
-// });
-//
-// exports.checkAuth=(req, res, next) => {
-//     if (req.headers.authtoken) {
-//         admin.auth().verifyIdToken(req.headers.authtoken)
-//             .then(() => {
-//                 next()
-//             }).catch(() => {
-//             res.status(403).send('Unauthorized')
-//         });
-//     } else {
-//         res.status(403).send('Unauthorized')
-//     }
-// }
+
+const privateKeyString = process.env.PRIVATE_KEY;
+const privateKey = forge.pki.privateKeyFromPem(privateKeyString);
+const privateKeyPem = forge.pki.privateKeyToPem(privateKey);
+
+admin.initializeApp({
+    credential: admin.credential.cert({
+        projectId: process.env.PROJECT_ID,
+        clientEmail: process.env.CLIENT_EMAIL,
+        privateKey: privateKeyPem,
+    }),
+});
+
+exports.checkAuth=(req, res, next) => {
+    if (req.headers.authtoken) {
+        admin.auth().verifyIdToken(req.headers.authtoken)
+            .then(() => {
+                next()
+            }).catch(() => {
+            res.status(403).send('Unauthorized : Token is not valid')
+        });
+    } else {
+        res.status(403).send('Unauthorized : No token provided')
+    }
+}

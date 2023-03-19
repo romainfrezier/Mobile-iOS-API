@@ -19,7 +19,7 @@ mongoose.connect(`mongodb+srv://${process.env.DB_URL}`, { useNewUrlParser: true,
 app.use(bodyParser.json());
 app.use(cors());
 
-// app.use(security.checkAuth)
+app.use(security.checkAuth)
 
 app.use('/volunteers', volunteerRoutes);
 app.use('/zones', zoneRoutes);
