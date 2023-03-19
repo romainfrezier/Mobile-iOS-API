@@ -21,10 +21,10 @@ app.use(cors());
 
 // app.use(security.checkAuth)
 
-app.use('/api/volunteers', volunteerRoutes);
-app.use('/api/zones', zoneRoutes);
-app.use('/api/festivals', festivalRoutes);
-app.use('/api/slots', slotRoutes);
-app.use('/api/days', dayRoutes);
+app.use('/volunteers', volunteerRoutes);
+app.use('/zones', zoneRoutes);
+app.use('/festivals', festivalRoutes);
+app.use('/slots', slotRoutes);
+app.use('/days', dayRoutes);
 
 module.exports = app;

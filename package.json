@@ -2,14 +2,18 @@
   "name": "awi-ios-api",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "deploy": "firebase deploy --only functions:api"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/romainfrezier/AWI-iOS-API.git"
+  },
+  "engines": {
+    "node": "16"
   },
   "author": "",
   "license": "ISC",
