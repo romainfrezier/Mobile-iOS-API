@@ -16,6 +16,7 @@ router.put('/firebase/:firebaseId', volunteersCtrl.updateVolunteerByFirebaseId);
 router.delete('/firebase/:firebaseId', volunteersCtrl.deleteVolunteerByFirebaseId); // Delete a volunteer by firebase id
 
 // Advanced Queries
+router.get('/availableSlots/:id', volunteersCtrl.getAvailableSlots); // Get all the available slots of a volunteer
 router.get('/festival/:festivalId', volunteersCtrl.getVolunteersByFestival); // Get all the volunteers of a festival
 router.get('/assignedSlots/:id', volunteersCtrl.getAssignedSlots); // Get all the assigned slots of a volunteer
 router.get('/assignedSlots/firebase/:firebaseId', volunteersCtrl.getAssignedSlotsByFirebaseId); // Get all the assigned slots of a volunteer from a firebase id
