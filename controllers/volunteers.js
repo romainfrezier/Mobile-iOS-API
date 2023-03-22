@@ -386,6 +386,7 @@ exports.getAvailableSlots = async (req, res, next) => {
         if (volunteer.availableSlots[i].zone == null) {
             availableSlots.push(
                 {
+                    "_id": volunteer.availableSlots[i]._id,
                     slot: slot,
                     zone: null
                 }
@@ -395,6 +396,7 @@ exports.getAvailableSlots = async (req, res, next) => {
             if (!slot || !zone) return res.status(404).json({message: "Slot or zone not found"});
             availableSlots.push(
                 {
+                    "_id": volunteer.availableSlots[i]._id,
                     slot: slot,
                     zone: zone
                 }

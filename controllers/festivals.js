@@ -350,7 +350,7 @@ exports.getFullFestival = async (req, res, next) => {
     // Build the festival object and return it
     const festivalComplete = {
         _id: req.params.id,
-        name: req.body.name,
+        name: festival.name,
         zones: zones,
         days: days,
     }
