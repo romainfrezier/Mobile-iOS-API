@@ -102,6 +102,34 @@ exports.createFestival = async (req, res, next) => {
     );
 }
 
+// Change the name of a festival from its id
+// Route: PUT /festivals/name/:id
+// Body: {
+//     "name": String
+// }
+exports.changeFestivalName = async (req, res, next) => {
+    let festival = await Festivals.findOne({_id: req.params.id});
+    if (!festival) {
+        return res.status(404).json({
+            error: 'Festival not found'
+        });
+    }
+    festival.name = req.body.name;
+    festival.save().then(
+        () => {
+            res.status(201).json({
+                message: 'Festival name changed successfully!'
+            });
+        }
+    ).catch(
+        (error) => {
+            res.status(400).json({
+                error: error
+            });
+        }
+    );
+}
+
 // TODO : Check
 // Update a festival from its id. Only an admin can do this
 // Route: PUT /festivals/:id
