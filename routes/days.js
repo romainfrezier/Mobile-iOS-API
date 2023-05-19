@@ -4,7 +4,7 @@ const daysCtrl = require('../controllers/days');
 const security = require('../middlewares/security.mid');
 
 // Basic CRUD
-router.post('/', security.isAdmin,daysCtrl.createDay); // Create a new day
+router.post('/:festivalId', security.isAdmin,daysCtrl.createDay); // Create a new day
 router.put('/:id', security.isAdmin, daysCtrl.updateDay); // Update a day
 router.delete('/:id', security.isAdmin, daysCtrl.deleteDay); // Delete a day
 router.get('/:id', daysCtrl.getOneDay); // Get a day

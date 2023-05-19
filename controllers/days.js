@@ -4,7 +4,7 @@ const Timeslots = require('../models/timeslots');
 const Festivals = require('../models/festivals');
 
 // Create a new day with its slots
-// Route : POST /api/days
+// Route : POST /api/days/:festivalId
 // Body : {
 //     "name": String,
 //     "hours": {
@@ -12,28 +12,45 @@ const Festivals = require('../models/festivals');
 //         "closing": Date
 //     }
 // }
-exports.createDay = (req, res, next) => {
+exports.createDay = async (req, res, next) => {
     const day = new Days({
         name: req.body.name,
         hours: {
             opening: req.body.hours.opening,
             closing: req.body.hours.closing
         },
-        slots: timeslotsFunctions.addSlots(req.body.hours.opening, req.body.hours.closing)
+        slots: await timeslotsFunctions.addSlots(req.body.hours.opening, req.body.hours.closing)
     });
-    day.save().then(
-        () => {
-            res.status(201).json({
-                message: 'Day saved successfully!'
-            });
-        }
-    ).catch(
-        (error) => {
-            res.status(400).json({
-                error: error
-            });
-        }
-    );
+    let festival = await Festivals.findOne({_id: req.params.festivalId});
+    if (!festival) {
+        return res.status(404).json({
+            error: 'Festival not found'
+        });
+    }
+    let festivalDaysIds = festival.days;
+    try {
+        let result = await day.save();
+        festivalDaysIds.push(result._id);
+        Festivals.findOneAndUpdate({_id: req.params.festivalId}, {
+            days: festivalDaysIds,
+        }).then(
+            () => {
+                res.status(201).json({
+                    message: 'Day created successfully!'
+                });
+            }
+        ).catch(
+            (error) => {
+                res.status(400).json({
+                    error: error
+                });
+            }
+        );
+    } catch (error) {
+        return res.status(400).json({
+            error: error
+        });
+    }
 }
 
 // Update a day from its id, remove all its slots and create new ones according to the new hours
@@ -48,41 +65,73 @@ exports.createDay = (req, res, next) => {
 exports.updateDay = async (req, res, next) => {
     let dayToUpdate = await Days.findOne({_id: req.params.id});
 
-    // Delete all slots of the day
-    for (let slotId of dayToUpdate.slots) {
-        await Timeslots.deleteOne({_id: slotId}).then(
+    if (!dayToUpdate) {
+        return res.status(404).json({
+            error: 'Day not found'
+        });
+    }
+    let slots
+    if (req.body.hours) {
+        if (req.body.hours.opening > req.body.hours.closing) {
+            return res.status(400).json({
+                error: 'Invalid hours'
+            });
+        }
+
+
+        // Delete all slots of the day
+        for (let slotId of dayToUpdate.slots) {
+            await Timeslots.deleteOne({_id: slotId}).then(
+                () => {
+                    console.log("slot deleted");
+                }
+            ).catch(
+                (error) => {
+                    console.log(error);
+                }
+            );
+        }
+
+        // Create new slots and update the day
+        slots = await timeslotsFunctions.addSlots(req.body.hours.opening, req.body.hours.closing)
+
+        Days.updateOne({_id: req.params.id}, {
+            name: req.body.name,
+            hours: {
+                opening: req.body.hours.opening,
+                closing: req.body.hours.closing
+            },
+            slots: slots
+        }).then(
             () => {
-                console.log("slot deleted");
+                res.status(201).json({
+                    message: 'Day updated successfully!'
+                });
             }
         ).catch(
             (error) => {
-                console.log(error);
+                res.status(400).json({
+                    error: error
+                });
+            }
+        );
+    } else {
+        Days.updateOne({_id: req.params.id}, {
+            name: req.body.name,
+        }).then(
+            () => {
+                res.status(201).json({
+                    message: 'Day updated successfully!'
+                });
+            }
+        ).catch(
+            (error) => {
+                res.status(400).json({
+                    error: error
+                });
             }
         );
     }
-
-    // Create new slots and update the day
-    let slots = await timeslotsFunctions.addSlots(req.body.hours.opening, req.body.hours.closing)
-    Days.updateOne({_id: req.params.id}, {
-        name: req.body.name,
-        hours: {
-            opening: req.body.hours.opening,
-            closing: req.body.hours.closing
-        },
-        slots: slots
-    }).then(
-        () => {
-            res.status(201).json({
-                message: 'Day updated successfully!'
-            });
-        }
-    ).catch(
-        (error) => {
-            res.status(400).json({
-                error: error
-            });
-        }
-    );
 }
 
 // TODO : Check
@@ -90,6 +139,19 @@ exports.updateDay = async (req, res, next) => {
 // Route : DELETE /api/days/:id
 exports.deleteDay = async (req, res, next) => {
     let dayToDelete = await Days.findOne({_id: req.params.id});
+
+    let festivals = await Festivals.find();
+    for (let i = 0; i < festivals.length; i++) {
+        let festival = festivals[i];
+        let days = festival.days;
+        if (days.includes(req.params.id)) {
+            let index = days.indexOf(req.params.id);
+            days.splice(index, 1);
+            await Festivals.findOneAndUpdate({_id: festival._id}, {
+                days: days
+            });
+        }
+    }
 
     // Delete all slots of the day
     for (let slotId of dayToDelete.slots) {

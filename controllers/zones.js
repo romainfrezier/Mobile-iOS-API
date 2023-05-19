@@ -81,10 +81,19 @@ exports.updateZone = async (req, res, next) => {
 // Route: DELETE /zones/:id
 exports.deleteZone = async (req, res, next) => {
     // Remove the zone from the festivals
-    await Festivals.updateMany(
-        {zones: req.params.id},
-        {$pull: {zones: req.params.id}}
-    );
+
+    let festivals = await Festivals.find();
+    for (let i = 0; i < festivals.length; i++) {
+        let festival = festivals[i];
+        let zones = festival.zones;
+        if (zones.includes(req.params.id)) {
+            let index = zones.indexOf(req.params.id);
+            zones.splice(index, 1);
+            await Festivals.findOneAndUpdate({_id: festival._id}, {
+                zones: zones
+            });
+        }
+    }
 
     // Remove the zone from the volunteers that were assigned to it
     await Volunteers.updateMany(

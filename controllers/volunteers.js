@@ -2,6 +2,7 @@ const Volunteers = require('../models/volunteers');
 const Timeslots = require('../models/timeslots');
 const Festivals = require('../models/festivals');
 const Zones = require('../models/zones');
+const Days = require('../models/days');
 
 // Aux function to update the available slots of a volunteer
 // Throws an error if the volunteer can not be updated or found
@@ -80,6 +81,67 @@ exports.updateVolunteer = (req, res, next) => {
         () => {
             res.status(201).json({
                 message: 'Volunteer updated successfully!'
+            });
+        }
+    ).catch(
+        (error) => {
+            res.status(400).json({
+                error: error
+            });
+        }
+    );
+}
+
+// Add a timeslot to the available slots of a volunteer
+// Route: PUT /volunteers/addSlot/:id
+// Body: {
+//     newSlot: String, => timeslotId to add to the volunteer's available slots
+// }
+exports.addAvailableSlot = async (req, res, next) => {
+    let volunteer = await Volunteers.findOne({_id: req.params.id});
+    if (!volunteer) {
+        res.status(404).json({
+            error: "Volunteer not found!"
+        });
+    }
+    let newSlot = {
+        slot: req.body.newSlot,
+        zone: null
+    }
+    volunteer.availableSlots.push(newSlot);
+    volunteer.save().then(
+        () => {
+            res.status(201).json({
+                message: 'Slot added successfully!'
+            });
+        }
+    ).catch(
+        (error) => {
+            res.status(400).json({
+                error: error
+            });
+        }
+    );
+}
+
+// Remove a timeslot to the available slots of a volunteer
+// Route: PUT /volunteers/removeSlot/:id
+// Body: {
+//     removedSlot: String, => timeslotId to add to the volunteer's available slots
+// }
+exports.removeAvailableSlot = async (req, res, next) => {
+    let volunteer = await Volunteers.findOne({_id: req.params.id});
+    if (!volunteer) {
+        res.status(404).json({
+            error: "Volunteer not found!"
+        });
+    }
+    let removedSlot = req.body.removedSlot;
+    volunteer.availableSlots = volunteer.availableSlots.filter(slot => slot.slot !== removedSlot);
+    volunteer.save().then(
+        () => {
+            res.status(201).json({
+                message: 'Slot removed successfully!'
             });
         }
     ).catch(
@@ -343,12 +405,20 @@ exports.getAssignedSlots = async (req, res, next) => {
 
     // For each timeslot of the volunteer, check if the volunteer is assigned to it
     for (let i = 0; i < volunteer.availableSlots.length; i++) {
-        let slot = await Timeslots.findOne({_id: volunteer.availableSlots[i]});
+        let slot = await Timeslots.findOne({_id: volunteer.availableSlots[i].slot});
         if (!slot) return res.status(404).json({message: "Slot not found"});
 
         // Check if the volunteer is assigned to the slot, if yes, add it to the array
         if (slot.volunteers.includes(volunteer._id)){
-            assignedSlots.push(slot);
+            let zone = await Zones.findOne({_id: volunteer.availableSlots[i].zone});
+            if (!slot || !zone) return res.status(404).json({message: "Zone not found"});
+            assignedSlots.push(
+                {
+                    "_id": volunteer.availableSlots[i]._id,
+                    slot: slot,
+                    zone: zone
+                }
+            );
         }
     }
     res.status(200).json(assignedSlots);
@@ -363,12 +433,20 @@ exports.getAssignedSlotsByFirebaseId = async (req, res, next) => {
 
     // For each timeslot of the volunteer, check if the volunteer is assigned to it
     for (let i = 0; i < volunteer.availableSlots.length; i++) {
-        let slot = await Timeslots.findOne({_id: volunteer.availableSlots[i]});
+        let slot = await Timeslots.findOne({_id: volunteer.availableSlots[i].slot});
         if (!slot) return res.status(404).json({message: "Slot not found"});
 
         // Check if the volunteer is assigned to the slot, if yes, add it to the array
         if (slot.volunteers.includes(volunteer._id)){
-            assignedSlots.push(slot);
+            let zone = await Zones.findOne({_id: volunteer.availableSlots[i].zone});
+            if (!slot || !zone) return res.status(404).json({message: "Zone not found"});
+            assignedSlots.push(
+                {
+                    "_id": volunteer.availableSlots[i]._id,
+                    slot: slot,
+                    zone: zone
+                }
+            );
         }
     }
     res.status(200).json(assignedSlots);
@@ -406,6 +484,47 @@ exports.getAvailableSlots = async (req, res, next) => {
     res.status(200).json(availableSlots);
 }
 
+// Get all the timeslots that doesn't have their id in the availableSlots array of a volunteer from its id
+// Route: GET /volunteers/notAvailableSlots/:id
+exports.getNotAvailableSlots = async (req, res, next) => {
+    let volunteer = await Volunteers.findOne({_id: req.params.id});
+    if (!volunteer) return res.status(404).json({message: "Volunteer not found"});
+    let notAvailableSlots = [];
+
+    if (!volunteer.festival) return res.status(404).json({message: "Volunteer not assigned to a festival"});
+    let festival = await Festivals.findOne({_id: volunteer.festival});
+    if (!festival) return res.status(404).json({message: "Festival not found"});
+    let festivalDays = festival.days;
+    let days = [];
+    for (let i = 0; i < festivalDays.length; i++) {
+        let day = await Days.findOne({_id: festivalDays[i].toString()});
+        if (!day) return res.status(404).json({message: "Day not found"});
+        days.push(day);
+    }
+    let timeslots = [];
+    for (let i = 0; i < days.length; i++) {
+        let dayTimeslots = days[i].slots;
+        for (let j = 0; j < dayTimeslots.length; j++) {
+            let timeslot = await Timeslots.findOne({_id: dayTimeslots[j].toString()});
+            if (!timeslot) return res.status(404).json({message: "Timeslot not found"});
+            timeslots.push(timeslot);
+        }
+    }
+
+    if (volunteer.availableSlots.length == 0) return res.status(200).json(timeslots);
+    for (let i = 0; i < timeslots.length; i++) {
+        let found = false;
+        for (let j = 0; j < volunteer.availableSlots.length; j++) {
+            if (timeslots[i]._id == volunteer.availableSlots[j].slot) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) notAvailableSlots.push(timeslots[i]);
+    }
+    res.status(200).json(notAvailableSlots);
+}
+
 // Make a volunteer an admin
 // Route: PUT /volunteers/admin/:id
 exports.makeAdmin = (req, res, next) => {
@@ -434,7 +553,7 @@ exports.changeFestival = async (req, res, next) => {
     if (!volunteer) return res.status(404).json({message: "Volunteer not found"});
 
     for (let i = 0; i < volunteer.availableSlots.length; i++) {
-        await Timeslots.updateOne({_id: volunteer.availableSlots[i]}, {$pull: {volunteers: volunteer._id}});
+        await Timeslots.updateOne({_id: volunteer.availableSlots[i].slot}, {$pull: {volunteers: volunteer._id}});
     }
 
     Volunteers.updateOne({_id: req.params.id}, {availableSlots: [], festival: req.body.festival}).then(

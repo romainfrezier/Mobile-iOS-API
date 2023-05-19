@@ -77,8 +77,11 @@ exports.createFestival = async (req, res, next) => {
         zones = await addZones(req.body.zones);
     }
 
-    // Add days
-    let daysCreated = await addDays(req.body.days);
+    // Add days if they are passed in the request body
+    let daysCreated = [];
+    if (req.body.days) {
+        daysCreated = await addDays(req.body.days);
+    }
 
     // Create festival
     const festival = new Festivals({
@@ -420,23 +423,18 @@ exports.getAllFestivals = (req, res, next) => {
 }
 
 // Get all the festivals that are not the one of the volunteer
-// Route: GET /festivals/other/:firebaseId
+// Route: GET /festivals/other/:id
 exports.getOtherFestivals = async (req, res, next) => {
     let festivals = await Festivals.find();
-    let volunteer = await Volunteers.findOne({firebaseId: req.params.firebaseId});
+    let volunteer = await Volunteers.findOne({_id: req.params.id});
     if (!volunteer) {
         return res.status(404).json({
             error: 'Volunteer not found'
         });
     }
-    if (festivals.size <= 1) {
-        return res.status(404).json({
-            error: 'No other festival found'
-        });
-    }
     let festivalsOther = [];
     for (let festival of festivals) {
-        if (festival._id !== volunteer.festival) {
+        if (festival._id.toString() !== volunteer.festival) {
             festivalsOther.push(festival);
         }
     }

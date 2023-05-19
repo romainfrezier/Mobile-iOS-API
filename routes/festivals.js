@@ -12,7 +12,7 @@ router.get('/', festivalsCtrl.getAllFestivals); // Get all festivals
 
 // Advanced Queries
 router.get('/full/:id', festivalsCtrl.getFullFestival); // Get a festival with all the details and information
-router.get('others/:firebaseId', festivalsCtrl.getOtherFestivals); // Get all the festivals that the user is not a volunteer of
+router.get('/others/:id', festivalsCtrl.getOtherFestivals); // Get all the festivals that the user is not a volunteer of
 router.put('/name/:id', security.isAdmin, festivalsCtrl.changeFestivalName); // Change the name of a festival
 
 module.exports = router;
